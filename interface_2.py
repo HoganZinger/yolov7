@@ -20,6 +20,7 @@ import sys
 
 result_dict = {'file_dict': "", 'type': 0, 'res_img': None, 'name': "", 'save_path': ""} # 存储全局变量
 pre_list = []
+path_list = []
 
 # 资源文件目录访问
 def source_path(relative_path):
@@ -66,6 +67,8 @@ def select_folder(var, label, button, window):
 
 # 批量检测的函数
 def detect_batch(indir, outdir, button, bar, window, results_list, result_select):
+    global path_list
+    global pre_list
     button['state'] = DISABLED
     button['text'] = '检测中'
 
@@ -137,7 +140,7 @@ def detect_batch(indir, outdir, button, bar, window, results_list, result_select
     l.place(relx=0.04, rely=0.67)
     window.update()
 
-    pre_list = detect_2(bar, window, device, indir, 'micro_stage1.pt', './pickles/surface_02_resnet50_1.pkl',
+    pre_list, path_list = detect_2(bar, window, device, indir, 'micro_stage1.pt', './pickles/surface_02_resnet50_1.pkl',
                             './pickles/side4_02_resnet50_1.pkl', './pickles/neizhongpi_01_resnet50_1.pkl')
 
     var.set('检测完成')
@@ -335,10 +338,14 @@ def refresh_combobox(combobox, new_items):
 
 # 人工结果复查，将结果列表中对应条目改为人工给出的类型
 def refresh_result(category_select, results_list, result_select):
+    global pre_list
     selected_index = result_select.current()
+    if selected_index == -1:
+        return
     selected_category = category_select.get()
     # 获取当前结果
-    current_result = list(results_list.get(0, tk.END))
+    # current_result = list(results_list.get(0, tk.END))
+    current_result = pre_list
     # print(current_result)
     current_result[selected_index] = selected_category
     refresh_listbox(results_list, current_result)
@@ -356,6 +363,39 @@ def change_selection(results_select, option):
         results_select.current(selected_index + 1)
     else:
         return
+
+# 显示给定路径下的图片
+def show_image(image_path, window):
+    image = Image.open(image_path)
+    label_width = 200
+    label_height = 150
+    image = image.resize((label_width, label_height), Image.ANTIALIAS)
+
+    photo = ImageTk.PhotoImage(image)
+    label = tk.Label(window, image=photo)
+    label.image = photo
+    label.place(relx=0.37, rely=0.13)  # 设置图片在窗口中的具体位置
+
+# 结果展示列表的选中事件：显示对应的图片
+def result_list_event(event, window):
+    selection = event.widget.curselection()
+    if not selection:
+        return
+    selected_index = int(selection[0])
+    path = path_list[selected_index]
+    show_image(path, window)
+
+# 选择结果下拉栏的选中事件，调用结果展示列表的选中事件
+def result_select_event(event, window, combobox, listbox):
+    selected_index = combobox.current()
+    print("Selected")
+    if selected_index == -1:
+        return
+    listbox.selection_clear(0, tk.END)
+    print("cleared")
+    listbox.selection_set(selected_index)
+    print("set")
+    result_list_event(event, window)
 
 def show_interface_2():
     interface_2_window = tk.Toplevel()
@@ -405,14 +445,16 @@ def show_interface_2():
 
     # 结果展示列表
     results_list = tk.Listbox(interface_2_window, width=35, height=10)
+    results_list.bind("<<ListboxSelect>>", lambda event, window=interface_2_window: result_list_event(event, window))
     results_list.pack(padx=10, pady=10)
 
     # 选择要修改的结果
-    # 创建一个带占位符的Combobox
     placeholder1 = "请选择一条结果"
     style1 = ttk.Style()
     style1.configure('Placeholder.TCombobox', foreground='gray')
     result_select = ttk.Combobox(interface_2_window, state="readonly")
+    result_select.bind("<<ComboboxSelected>>", lambda event, window=interface_2_window, combobox=result_select,
+                                            listbox=results_list: result_select_event(event, window, combobox, listbox))
     result_select['values'] = pre_list
     result_select.pack(pady=10)
     # 选择要修正为的类别

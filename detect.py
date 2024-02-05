@@ -331,6 +331,7 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
     old_img_b = 1
 
     result_list = []
+    path_list = []
     for path, img, im0s, vid_cap in dataset:
         img0 = im0s
         img = torch.from_numpy(img).to(device)
@@ -349,8 +350,9 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
         # window.update()
 
         result_list.append(result)
+        path_list.append(path)
 
-    return result_list
+    return result_list, path_list
 
 
 def detect_one_2(img0, device, weights, classifier0, classifier1, classifier2, classes=None, save_conf=False, agnostic_nms=False, img_size=224, conf_thres=0.6, iou_thres=0.45, view_img=False, save_txt=False, trace=True, save_img = True, exist_ok=False, augment=False):
