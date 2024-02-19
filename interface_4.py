@@ -4,11 +4,11 @@ time:
 function: 酸枣仁栅状细胞侧面观显微结构检测界面
 """
 import tkinter as tk
-from tkinter import DISABLED, NORMAL, StringVar, Label, Tk, Button, filedialog, PhotoImage
+from tkinter import DISABLED, NORMAL, StringVar, Label, Button, filedialog, PhotoImage
 from tkinter.ttk import Progressbar
 import datetime
 import torch
-from detect import detect, detect_one
+from functions.detect import detect, detect_one
 import threading
 import cv2
 import numpy as np

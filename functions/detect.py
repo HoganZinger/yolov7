@@ -332,6 +332,7 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
 
     result_list = []
     path_list = []
+    res_img_list = []
     for path, img, im0s, vid_cap in dataset:
         img0 = im0s
         img = torch.from_numpy(img).to(device)
@@ -351,6 +352,7 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
 
         result_list.append(result)
         path_list.append(path)
+
 
     return result_list, path_list
 
@@ -554,6 +556,7 @@ def process_2(type, img0, model, fg_classifier0, fg_classifier1, fg_classifier2,
             # filepath = save_path + '/' + path.split('\')[-1]
             im0 = cv2.cvtColor(np.asarray(im0), cv2.COLOR_RGB2BGR)
             res_patches.append(im0)
+
     # 多个检测时不需要画出结果
     if type == 'group':
         return infos
@@ -566,8 +569,9 @@ def process_2(type, img0, model, fg_classifier0, fg_classifier1, fg_classifier2,
             img0[i * cut_width: min(width, (i + 1) * cut_width), j * cut_length: min(length, (j + 1) * cut_length), :] = \
                 res_patches[index]
             index += 1
-    plt = draw_res(img0, infos, rowLabels)
 
+
+    plt = draw_res(img0, infos, rowLabels)
     return plt, infos
 
 

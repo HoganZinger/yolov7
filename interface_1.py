@@ -1,9 +1,9 @@
 import tkinter
-from tkinter import DISABLED, NORMAL, StringVar, Label, Tk, Button, filedialog, PhotoImage
+from tkinter import DISABLED, NORMAL, StringVar, Label, Button, filedialog, PhotoImage
 from tkinter.ttk import Progressbar
 import datetime
 import torch
-from detect import detect, detect_one
+from functions.detect import detect, detect_one
 import threading
 import cv2
 import numpy as np
@@ -295,10 +295,8 @@ def change_type(change, batch_objs, single_objs, window): ######################
 
 def show_interface_1():
     # 创建窗口
-    # window = Tk()
     interface_1_window = tkinter.Toplevel()
     interface_1_window.title('南方菟丝子显微结构检测')
-    # window.geometry('650x450')
     interface_1_window.geometry('1200x800')
     interface_1_window.resizable(False, False) # 禁止最大化
 

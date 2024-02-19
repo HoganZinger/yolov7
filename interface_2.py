@@ -4,71 +4,36 @@ time:
 function: 酸枣仁显微结构检测界面
 """
 import tkinter as tk
-from tkinter import DISABLED, NORMAL, StringVar, Label, Tk, Button, filedialog, PhotoImage
+from tkinter import DISABLED, NORMAL, StringVar, Label, Button, filedialog, PhotoImage
 from tkinter import ttk
 from tkinter.ttk import Progressbar, Combobox
-import datetime
 import torch
-from detect import detect_2, detect_one_2
-import threading
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
-
 import os
 import sys
+from functions.detect import detect_2, detect_one_2
+from functions.tools import thread_it, source_path, select_folder, save_img
+from functions.review import set_combobox_placeholder, combobox_set_normal_style, refresh_listbox,  \
+     refresh_result, change_selection, show_image, result_list_event, result_select_event, show_report_window,  \
+     refresh_combobox
+
 
 result_dict = {'file_dict': "", 'type': 0, 'res_img': None, 'name': "", 'save_path': ""} # 存储全局变量
 pre_list = []
 path_list = []
-
-# 资源文件目录访问
-def source_path(relative_path):
-    # 是否Bundle Resource
-    if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
-    else:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
+res_img_list = []
 
 # 修改当前工作目录，使得资源文件可以被正确访问
 cd = source_path('')
 os.chdir(cd)
 
-def thread_it(func, *args):
-    '''将函数打包进线程'''
-    # 创建
-    t = threading.Thread(target=func, args=args)
-    # 守护 !!!
-    t.setDaemon(True)
-    # 启动
-    t.start()
-    # 阻塞--卡死界面！
-    # t.join()
-    # pre_list = func(*args)
-    # return pre_list
-
-########################################## 批量检测组件函数
-# 批量检测选择待测文件夹
-def select_folder(var, label, button, window):
-    button['state'] = DISABLED
-    button['text'] = '选择中'
-
-    folder_path = filedialog.askdirectory()
-    selected_path = folder_path
-    var.set('读取自: ' + selected_path)
-    label.place(relx=0.04, rely=0.22)
-    window.update()
-    result_dict['file_dict'] = selected_path
-
-    button['state'] = NORMAL
-    button['text'] = '待测图片文件夹'
-
 # 批量检测的函数
 def detect_batch(indir, outdir, button, bar, window, results_list, result_select):
     global path_list
     global pre_list
+    global res_img_list
     button['state'] = DISABLED
     button['text'] = '检测中'
 
@@ -99,13 +64,13 @@ def detect_batch(indir, outdir, button, bar, window, results_list, result_select
         return
 
     # if outdir == "":
-    #     var.set('保存路径为空')
-    #     l.place(relx=0.04, rely=0.67)
-    #     window.update()
-    #     button['state'] = NORMAL
-    #     button['text'] = '开始检测'
-    #     return
-    # outdir = outdir.replace('\\', '/') + '/'
+    #     #     var.set('保存路径为空')
+    #     #     l.place(relx=0.04, rely=0.67)
+    #     #     window.update()
+    #     #     button['state'] = NORMAL
+    #     #     button['text'] = '开始检测'
+    #     #     return
+    #     # outdir = outdir.replace('\\', '/') + '/'
     # if not os.path.exists(outdir) or not os.path.isabs(outdir):  # 检查路径是否存在
     #     var.set('保存路径不存在')
     #     l.place(relx=0.04, rely=0.67)
@@ -158,27 +123,7 @@ def detect_batch(indir, outdir, button, bar, window, results_list, result_select
     # fp: str = fp.replace("/", "\\")
     # os.startfile(fp)
 
-
-def select_save(var, label, button, window):
-    button['state'] = DISABLED
-    button['text'] = '选择中'
-
-    path = filedialog.askdirectory()
-    var.set('保存至: ' + path)
-    label.place(relx=0.04, rely=0.44)
-    var = StringVar()
-    var.set('将在此路径下以检测开始时间创建子文件夹用以保存结果')
-    l = Label(window, textvariable=var, bg="#f0f0f0", font=('宋体', 8), width=100, height=1)
-    l.place(relx=0.04, rely=0.5)
-    window.update()
-    result_dict['save_path'] = path
-
-    button['state'] = NORMAL
-    button['text'] = '保存路径'
-############################################################# 批量检测组件函数结束
-
-############################################################### 单张检测组件函数
-# 选择读取图片并检测
+# 单张检测场景中，选择读取图片并检测
 def select_img(var, label, window, button, button2):
     button['state'] = DISABLED
     button['text'] = '选择中'
@@ -224,13 +169,13 @@ def select_img(var, label, window, button, button2):
 
     # 展示结果
     res.tight_layout()
-    res.savefig('./res.png', dpi=300, bbox_inches='tight')
-    img =  cv2.imread("./res.png")
+    res.savefig('../res.png', dpi=300, bbox_inches='tight')
+    img =  cv2.imread("../res.png")
     img = cv2.resize(img, (850, 650))
-    cv2.imwrite('./res.png', img)
+    cv2.imwrite('../res.png', img)
 
     global label_img
-    img = Image.open('./res.png')
+    img = Image.open('../res.png')
     label_img = ImageTk.PhotoImage(img)
     l0 = Label(window,
             image=label_img,  # 标签的文字
@@ -242,29 +187,9 @@ def select_img(var, label, window, button, button2):
     l0.place(relx=0.17, rely=0.2)
     window.update()
 
-# 保存图片按钮函数
-def save_img(window, button):
-    button['state'] = DISABLED
-    button['text'] = '保存中'
-
-    folder_path = filedialog.asksaveasfilename(title=u'保存', initialfile=result_dict['name'], filetypes=[("JPG图片", ".jpg"), ("PNG图片", ".png"), ("JPEG图片", ".jpeg"), ("TIF图片", ".tif")])
-
-    var = StringVar()
-    l = Label(window, textvariable=var, bg="#f0f0f0", font=('宋体', 8), width=100, height=1)
-
-    selected_path = folder_path
-    result_dict['res_img'].savefig(selected_path, dpi=300, bbox_inches='tight')
-    # cv2.imencode(result_dict['name'][-4:], result_dict['res_img'])[1].tofile(selected_path)
-    var.set('保存结果至' + selected_path)
-    l.place(relx=0.04, rely=0.44)
-    window.update()
-    os.startfile(folder_path)
-
-    button['state'] = NORMAL
-    button['text'] = '保存'
-############################################################### 单张检测组件函数结束
-
-def change_type(change, batch_objs, single_objs, window): ################################################# 重写转换函数，要正确摆放位置，并且要清除过时的label
+# 修改单张和批量检测
+def change_type(change, batch_objs, single_objs, window):
+    ################################################# 重写转换函数，要正确摆放位置，并且要清除过时的label
     ori = window.winfo_children()
     if result_dict['type'] == 0: # 换为单张检测
         result_dict['type'] = 1
@@ -295,107 +220,31 @@ def change_type(change, batch_objs, single_objs, window): ######################
 
         # 布置批量检测各个组件
         folder = batch_objs['folder']
-        save_folder = batch_objs['save_folder']
+        # save_folder = batch_objs['save_folder']
         start_detect = batch_objs['start_detect']
         title = single_objs['title']
+        results_list = batch_objs['results_list']
+        result_select = batch_objs['result_select']
+        category_select = batch_objs['category_select']
+        confirm = batch_objs['confirm']
+        prev_result = batch_objs['prev_result']
+        next_result = batch_objs['next_result']
+        report = batch_objs['report']
         # l0 = batch_objs['label']
         change.place(relx=0.015, rely=0.022)
         title.place(relx=0.42, rely=0.01)
-        folder.place(relx=0.42, rely=0.22)
-        save_folder.place(relx=0.42, rely=0.44)
-        start_detect.place(relx=0.42, rely=0.66)
+        folder.place(relx=0.22, rely=0.12)
+        # save_folder.place(relx=0.42, rely=0.44)
+        start_detect.place(relx=0.22, rely=0.36)
         # l0.place(relx=0.27, rely=0.77)
-
-# 用于显示下拉栏
-def set_combobox_placeholder(combobox, placeholder):
-    combobox.set(placeholder)
-    combobox.bind("<FocusIn>", lambda event: combobox_set_normal_style(combobox, placeholder))
-    combobox.bind("<<ComboboxSelected>>", lambda event: combobox_set_normal_style(combobox, placeholder))
-
-def combobox_set_normal_style(combobox, placeholder):
-    if combobox.get() == placeholder:
-        combobox.set('')
-        combobox.configure(style='TCombobox')
-    elif not combobox.get():
-        combobox.set(placeholder)
-        combobox.configure(style='Placeholder.TCombobox')
-
-# 更新结果展示列表
-def refresh_listbox(listbox, new_items):
-    empty_item = ['未检测出有效目标']
-    listbox.delete(0, tk.END)  # 清除Listbox中的所有项目
-    for item in new_items:
-        if not item:
-            listbox.insert(tk.END, empty_item)
-        else:
-            listbox.insert(tk.END, item)  # 添加新的项目到Listbox
-# 更新下拉栏内容
-def refresh_combobox(combobox, new_items):
-    for idx, item in enumerate(new_items):
-        if not item:
-            new_items[idx] = "未检测出有效目标"
-    combobox['values'] = new_items
-
-# 人工结果复查，将结果列表中对应条目改为人工给出的类型
-def refresh_result(category_select, results_list, result_select):
-    global pre_list
-    selected_index = result_select.current()
-    if selected_index == -1:
-        return
-    selected_category = category_select.get()
-    # 获取当前结果
-    # current_result = list(results_list.get(0, tk.END))
-    current_result = pre_list
-    # print(current_result)
-    current_result[selected_index] = selected_category
-    refresh_listbox(results_list, current_result)
-    refresh_combobox(result_select, current_result)
-
-# 修改选中的检测结果
-def change_selection(results_select, option):
-    selected_index = results_select.current()
-    # 未选中任一选项
-    if selected_index == -1:
-        return
-    if option == 'prev':
-        results_select.current(selected_index - 1)
-    if option == 'next':
-        results_select.current(selected_index + 1)
-    else:
-        return
-
-# 显示给定路径下的图片
-def show_image(image_path, window):
-    image = Image.open(image_path)
-    label_width = 200
-    label_height = 150
-    image = image.resize((label_width, label_height), Image.ANTIALIAS)
-
-    photo = ImageTk.PhotoImage(image)
-    label = tk.Label(window, image=photo)
-    label.image = photo
-    label.place(relx=0.37, rely=0.13)  # 设置图片在窗口中的具体位置
-
-# 结果展示列表的选中事件：显示对应的图片
-def result_list_event(event, window):
-    selection = event.widget.curselection()
-    if not selection:
-        return
-    selected_index = int(selection[0])
-    path = path_list[selected_index]
-    show_image(path, window)
-
-# 选择结果下拉栏的选中事件，调用结果展示列表的选中事件
-def result_select_event(event, window, combobox, listbox):
-    selected_index = combobox.current()
-    print("Selected")
-    if selected_index == -1:
-        return
-    listbox.selection_clear(0, tk.END)
-    print("cleared")
-    listbox.selection_set(selected_index)
-    print("set")
-    result_list_event(event, window)
+        results_list.place(relx=0.72, rely=0.12)
+        result_select.place(relx=0.42, rely=0.44)
+        category_select.place(relx=0.42, rely=0.64)
+        confirm.place(relx=0.72, rely=0.64)
+        prev_result.place(relx=0.22, rely=0.84)
+        next_result.place(relx=0.82, rely=0.84)
+        report.place(relx=0.50, rely=0.80)
+        
 
 def show_interface_2():
     interface_2_window = tk.Toplevel()
@@ -422,7 +271,7 @@ def show_interface_2():
 
     # 按钮，选择待测图片所在文件夹
     folder = Button(interface_2_window, text="待测图片文件夹", width=15, height=2,
-                    command=lambda: thread_it(select_folder, var1, l1, folder, interface_2_window))
+                    command=lambda: thread_it(select_folder, var1, l1, folder, interface_2_window, result_dict))
     # lable，说明输入框作用
     var2 = StringVar()
     l5 = Label(interface_2_window,
@@ -445,7 +294,7 @@ def show_interface_2():
 
     # 结果展示列表
     results_list = tk.Listbox(interface_2_window, width=35, height=10)
-    results_list.bind("<<ListboxSelect>>", lambda event, window=interface_2_window: result_list_event(event, window))
+    results_list.bind("<<ListboxSelect>>", lambda event, window=interface_2_window: result_list_event(event, window, path_list))
     results_list.pack(padx=10, pady=10)
 
     # 选择要修改的结果
@@ -453,8 +302,8 @@ def show_interface_2():
     style1 = ttk.Style()
     style1.configure('Placeholder.TCombobox', foreground='gray')
     result_select = ttk.Combobox(interface_2_window, state="readonly")
-    result_select.bind("<<ComboboxSelected>>", lambda event, window=interface_2_window, combobox=result_select,
-                                            listbox=results_list: result_select_event(event, window, combobox, listbox))
+    # result_select.bind("<<ComboboxSelected>>", lambda event, window=interface_2_window, combobox=result_select,
+    #                                         listbox=results_list: result_select_event(event, window, combobox, listbox))
     result_select['values'] = pre_list
     result_select.pack(pady=10)
     # 选择要修正为的类别
@@ -470,11 +319,14 @@ def show_interface_2():
     set_combobox_placeholder(category_select, placeholder2)
 
     confirm = Button(interface_2_window, text='确认', width=8, height=2, font=('宋体', 10),
-                     command=lambda : thread_it(refresh_result, category_select, results_list, result_select))
+                     command=lambda : thread_it(refresh_result, pre_list, category_select, results_list, result_select))
     prev_result = Button(interface_2_window, text='上一条', width=8, height=2, font=('宋体', 10),
                          command=lambda : thread_it(change_selection, result_select, 'prev'))
     next_result = Button(interface_2_window, text='下一条', width=8, height=2, font=('宋体', 10),
                          command=lambda : thread_it(change_selection, result_select, 'next'))
+    report = Button(interface_2_window, text='生成检测报告', width=15, height=3, font=('宋体', 10),
+                         command=lambda : thread_it(show_report_window, interface_2_window, report, result_dict,
+                                                    pre_list, path_list))
     #################################################### 批量检测组件声明结束
 
     ############################################################### 单张检测组件声明
@@ -496,25 +348,25 @@ def show_interface_2():
 
     # 保存图片按钮
     save = Button(interface_2_window, text="保存", width=15, height=2, font=('宋体', 10),
-                  command=lambda: thread_it(save_img, interface_2_window, save))
+                  command=lambda: thread_it(save_img, interface_2_window, save, result_dict))
     save['state'] = DISABLED
 
     # 选择图片并检测的按钮
     img = Button(interface_2_window, text="待测图片", width=15, height=2, font=('宋体', 10),
-                 command=lambda: thread_it(select_img, var3, l3, interface_2_window, img, save))
+                 command=lambda: thread_it(select_img, var3, l3, interface_2_window, img, save, result_dict))
     ############################################################### 单张检测组件声明结束
 
     # 切换单张检测和批量检测
     batch_objs = {'folder': folder, 'start_detect': start_detect, 'title': title,
                   'results_list': results_list, 'result_select': result_select,     'category_select': category_select,
-                  'confirm': confirm, 'prev_result': prev_result, 'next_result': next_result}
+                  'confirm': confirm, 'prev_result': prev_result, 'next_result': next_result, 'report': report}
     single_objs = {'img': img, 'save': save, 'title': title}
     change = Button(interface_2_window, text="换为单张检测", width=10, height=1, font=('宋体', 10),
                     command=lambda: thread_it(change_type, change, batch_objs, single_objs, interface_2_window))
     change.place(relx=0.015, rely=0.022)
 
     ############################################################## 批量检测组件布置
-    title.place(relx=0.36, rely=0.01)
+    title.place(relx=0.32, rely=0.01)
     folder.place(relx=0.22, rely=0.12)
     # save_folder.place(relx=0.22, rely=0.24)
     start_detect.place(relx=0.22, rely=0.36)
@@ -524,6 +376,7 @@ def show_interface_2():
     confirm.place(relx=0.72, rely=0.64)
     prev_result.place(relx=0.22, rely=0.84)
     next_result.place(relx=0.82, rely=0.84)
+    report.place(relx=0.50, rely=0.80)
     ############################################################### 批量检测组件布置结束
 
     # 进入消息循环
