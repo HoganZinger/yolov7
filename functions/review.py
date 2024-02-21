@@ -12,7 +12,7 @@ from PIL import Image, ImageTk
 from functions.tools import thread_it, select_save
 import os
 from io import BytesIO
-
+from datetime import datetime
 
 # 用于显示下拉栏
 def set_combobox_placeholder(combobox, placeholder):
@@ -114,14 +114,19 @@ def result_select_event(event, window, combobox, listbox):
     result_list_event(event, window)
 
 
-def generate_report(pre_list, path_list, button, outdir, window, date, serial, name, item):
+def generate_report(pre_list, path_list, button, outdir, window, report_infos):
 
     button['state'] = DISABLED
     button['text'] = '报告生成中'
 
+    date = report_infos['date_entry'].get()
+    serial = report_infos['serial_entry'].get()
+    name = report_infos['name_entry'].get()
+    item = report_infos['item_entry'].get()
+
     # 处理保存路径
     var = StringVar()
-    l = Label(window, textvariable=var, bg="#f0f0f0", font=('宋体', 8), width=100, height=1)
+    l = Label(window, textvariable=var, bg="#f0f0f0", font=('宋体', 8), width=20, height=1)
     if outdir == "":
         var.set('保存路径为空')
         l.place(relx=0.04, rely=0.67)
@@ -144,6 +149,23 @@ def generate_report(pre_list, path_list, button, outdir, window, date, serial, n
         button['state'] = NORMAL
         button['text'] = '生成检测报告'
         return
+    # 处理编辑信息
+    if serial == report_infos['default_serial'] or serial == "":
+        var.set('请输入检品编号')
+        l.place(relx=0.45, rely=0.80)
+        window.update()
+        button['state'] = NORMAL
+        button['text'] = '生成检测报告'
+        print("编号提醒已输出")
+        return
+    if name == report_infos['default_name'] or name == "":
+        var.set('请输入检品名称')
+        l.place(relx=0.45, rely=0.80)
+        window.update()
+        button['state'] = NORMAL
+        button['text'] = '生成检测报告'
+        print("名字提醒已输出")
+        return
 
     img_name_list = []
     for img_path in enumerate(path_list):
@@ -153,7 +175,8 @@ def generate_report(pre_list, path_list, button, outdir, window, date, serial, n
         img_name = os.path.basename(img_path)
         img_name_list.append(img_name)
     # foldername = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')  # 获取系统时间(年月日时分秒)为文件名
-    file_path = f'{outdir}/{name}.docx'
+    filename = "编号"+serial
+    file_path = f'{outdir}/{filename}.docx'
     # 编辑doc文档
     doc = docx.Document()
     title = doc.add_heading('检验报告', level=1)
@@ -165,12 +188,13 @@ def generate_report(pre_list, path_list, button, outdir, window, date, serial, n
     doc.add_paragraph('检验结果：')
     lenth = len(pre_list)
     # 结果表格
-    table = doc.add_table(rows=lenth, cols=3)
+    table = doc.add_table(rows=1, cols=3)
     table.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER  # 居中对齐
     headers = ['序号', '图片名称', '结果']
     for i, header in enumerate(headers):
         table.cell(0, i).text = header
     for idx, (img_name, result) in enumerate(zip(img_name_list, pre_list), 1):
+        print(idx, img_name, result)
         row_cells = table.add_row().cells
         row_cells[0].text = str(idx)
         row_cells[1].text = str(img_name)  # 图片名称
@@ -180,7 +204,6 @@ def generate_report(pre_list, path_list, button, outdir, window, date, serial, n
         paragraph = doc.add_paragraph()
         run = paragraph.add_run()
         original_size = os.path.getsize(img_path)
-        print(original_size)
         if original_size > 200000:  # 图片过大，需要压缩
             image = Image.open(img_path)
             output = BytesIO()
@@ -204,6 +227,12 @@ def generate_report(pre_list, path_list, button, outdir, window, date, serial, n
     button['text'] = '生成检测报告'
     print("complete!")
 
+    var.set('报告已输出到指定路径')
+    l.place(relx=0.45, rely=0.80)
+    window.update()
+    button['state'] = NORMAL
+    button['text'] = '生成检测报告'
+
 
 # 设置entry的点击事件：在entry为默认文字时清空文字
 def on_entry_click(event, entry, default):
@@ -223,23 +252,52 @@ def show_report_window(window, button, result_dict, pre_list, path_list):
     button['state'] = DISABLED
     button['text'] = '编辑中'
     report_window = tk.Toplevel(window)
-    report_window.title("输出检测报告")
-    report_window.geometry('400x300')
+    report_window.title("编辑检测报告")
+    report_window.geometry('600x400')
 
+    # 文字提醒信息
+    remind = Label(report_window,
+               text="请编辑报告信息：",  # 标签的文字
+               bg="#f0f0f0",  # 标签背景颜色
+               font=('宋体', 10),  # 字体和字体大小
+               width=15, height=1  # 标签长宽
+               )
+    date_remind = Label(report_window,
+                   text="日期",  # 标签的文字
+                   bg="#f0f0f0",  # 标签背景颜色
+                   font=('宋体', 10),  # 字体和字体大小
+                   width=10, height=1  # 标签长宽
+                   )
+    serial_remind = Label(report_window,
+                        text="检品编号",  # 标签的文字
+                        bg="#f0f0f0",  # 标签背景颜色
+                        font=('宋体', 10),  # 字体和字体大小
+                        width=10, height=1  # 标签长宽
+                        )
+    name_remind = Label(report_window,
+                        text="检品名称",  # 标签的文字
+                        bg="#f0f0f0",  # 标签背景颜色
+                        font=('宋体', 10),  # 字体和字体大小
+                        width=10, height=1  # 标签长宽
+                        )
+    item_remind = Label(report_window,
+                        text="检验项目",  # 标签的文字
+                        bg="#f0f0f0",  # 标签背景颜色
+                        font=('宋体', 10),  # 字体和字体大小
+                        width=10, height=1  # 标签长宽
+                        )
     # 获取检测报告所需的信息
     date_entry = tk.Entry(report_window)
     serial_entry = tk.Entry(report_window)
     name_entry = tk.Entry(report_window)
     item_entry = tk.Entry(report_window)
-    date = date_entry.get()
-    serial = serial_entry.get()
-    name = name_entry.get()
-    item = item_entry.get()
+
     # 设置默认值
-    default_date = "日期"
-    default_serial = "请输入检品编号"
-    default_name = "请输入检品名称"
+    default_date = datetime.now().strftime('%Y.%m.%d')
+    default_serial = "检品编号"
+    default_name = "例：南方菟丝子"
     default_item = "显微鉴别"
+
     date_entry.insert(0, default_date)
     serial_entry.insert(0, default_serial)
     name_entry.insert(0, default_name)
@@ -265,7 +323,7 @@ def show_report_window(window, button, result_dict, pre_list, path_list):
     item_entry.pack()
 
     title = Label(report_window,
-                  text="输出检测报告",  # 标签的文字
+                  text="生成检测报告",  # 标签的文字
                   bg="#f0f0f0",  # 标签背景颜色
                   font=('宋体', 16),  # 字体和字体大小
                   width=30, height=3  # 标签长宽
@@ -277,24 +335,31 @@ def show_report_window(window, button, result_dict, pre_list, path_list):
                textvariable=var2,  # 标签的文字
                bg="#f0f0f0",  # 标签背景颜色
                font=('宋体', 8),  # 字体和字体大小
-               width=100, height=1  # 标签长宽
+               width=40, height=1  # 标签长宽
                )
     save_folder = Button(report_window, text="保存路径", width=15, height=2,
                          command=lambda: thread_it(select_save, var2, l5, save_folder, report_window, result_dict))
 
+    report_infos = {'date_entry': date_entry, 'name_entry': name_entry, 'serial_entry': serial_entry, 'item_entry':
+                    item_entry, 'default_serial': default_serial, 'default_name': default_name}
     generate = Button(report_window, text='确定', width=15, height=2,
                       command=lambda: thread_it(generate_report, pre_list, path_list, generate,
                                                 result_dict['save_path'],
-                                                report_window, date, serial, name, item))
+                                                report_window, report_infos))
 
     # 布置按钮
-    title.place(relx=0.20, rely=0.01)
-    date_entry.place(relx=0.15, rely=0.25)
-    serial_entry.place(relx=0.15, rely=0.35)
-    name_entry.place(relx=0.15, rely=0.45)
-    item_entry.place(relx=0.15, rely=0.55)
-    save_folder.place(relx=0.75, rely=0.30)
-    generate.place(relx=0.75, rely=0.50)
+    title.place(relx=0.22, rely=0.05)
+    remind.place(relx=0.1, rely=0.23)
+    date_remind.place(relx=0.05, rely=0.35)
+    date_entry.place(relx=0.25, rely=0.35)
+    serial_remind.place(relx=0.05, rely=0.45)
+    serial_entry.place(relx=0.25, rely=0.45)
+    name_remind.place(relx=0.05, rely=0.55)
+    name_entry.place(relx=0.25, rely=0.55)
+    item_remind.place(relx=0.05, rely=0.65)
+    item_entry.place(relx=0.25, rely=0.65)
+    save_folder.place(relx=0.67, rely=0.30)
+    generate.place(relx=0.67, rely=0.60)
 
     button['state'] = NORMAL
     button['text'] = '生成检测报告'

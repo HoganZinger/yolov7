@@ -312,7 +312,7 @@ def show_interface_2():
     style2.configure('Placeholder.TCombobox', foreground='gray')
     category_select = Combobox(interface_2_window, state="readonly")
     category_select['values'] = ('草酸钙', '草酸钙（暗）', '酸枣仁内种皮细胞', '理枣仁内种皮细胞', '酸枣仁栅状细胞表面观', '兵豆栅状细胞表面观', '理枣仁栅状细胞表面观'
-                                , '酸枣仁栅状细胞侧面观', '兵豆栅状细胞侧面观', '理枣仁栅状细胞侧面观')
+                                 , '酸枣仁栅状细胞侧面观', '兵豆栅状细胞侧面观', '理枣仁栅状细胞侧面观')
     category_select.pack(pady=10)
     # 设置样式和占位符
     set_combobox_placeholder(result_select, placeholder1)

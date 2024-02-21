@@ -52,11 +52,9 @@ def select_save(var, label, button, window, result_dict):
 
     path = filedialog.askdirectory()
     var.set('保存至: ' + path)
-    label.place(relx=0.04, rely=0.44)
-    var = StringVar()
-    var.set('将在此路径下以检测开始时间创建子文件夹用以保存结果')
-    l = Label(window, textvariable=var, bg="#f0f0f0", font=('宋体', 8), width=100, height=1)
-    l.place(relx=0.04, rely=0.5)
+    label.place(relx=0.57, rely=0.49)
+    # l = Label(window, textvariable=var, bg="#f0f0f0", font=('宋体', 8), width=100, height=1)
+    # l.place(relx=0.67, rely=0.44)
     window.update()
     result_dict['save_path'] = path
 
