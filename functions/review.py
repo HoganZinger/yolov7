@@ -50,19 +50,17 @@ def refresh_combobox(combobox, new_items):
 
 
 # 人工结果复查，将结果列表中对应条目改为人工给出的类型
-def refresh_result(pre_list, category_select, results_list, result_select):
+def refresh_result(pre_list, category_select, results_list, result_select, path_list, window):
     selected_index = result_select.current()
     if selected_index == -1:
         return
     selected_category = category_select.get()
-    # 获取当前结果
-    # current_result = list(results_list.get(0, tk.END))
     current_result = pre_list
-    # print(current_result)
     current_result[selected_index] = selected_category
     refresh_listbox(results_list, current_result)
     refresh_combobox(result_select, current_result)
-
+    results_list.selection_set(selected_index)
+    show_image(path_list[selected_index], window)
 
 # 修改选中的检测结果
 def change_selection(results_select, option):
@@ -81,14 +79,14 @@ def change_selection(results_select, option):
 # 显示给定路径下的图片
 def show_image(image_path, window):
     image = Image.open(image_path)
-    label_width = 200
-    label_height = 150
+    label_width = 240
+    label_height = 160
     image = image.resize((label_width, label_height), Image.ANTIALIAS)
 
     photo = ImageTk.PhotoImage(image)
     label = tk.Label(window, image=photo)
     label.image = photo
-    label.place(relx=0.37, rely=0.13)  # 设置图片在窗口中的具体位置
+    label.place(relx=0.45, rely=0.24)  # 设置图片在窗口中的具体位置
 
 
 # 结果展示列表的选中事件：显示对应的图片

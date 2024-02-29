@@ -8,6 +8,8 @@ from tkinter import DISABLED, NORMAL, StringVar, Label, Button, filedialog
 import os
 import sys
 import threading
+from PIL import Image, ImageTk
+
 
 def thread_it(func, *args):
     '''将函数打包进线程'''
@@ -20,6 +22,7 @@ def thread_it(func, *args):
     # 阻塞--卡死界面！
     # t.join()
 
+
 # 资源文件目录访问
 def source_path(relative_path):
     # 是否Bundle Resource
@@ -28,6 +31,7 @@ def source_path(relative_path):
     else:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
 
 ########################################## 批量检测组件函数
 # 批量检测选择待测文件夹
@@ -38,7 +42,7 @@ def select_folder(var, label, button, window, result_dict):
     folder_path = filedialog.askdirectory()
     selected_path = folder_path
     var.set('读取自: ' + selected_path)
-    label.place(relx=0.04, rely=0.22)
+    label.place(relx=0.04, rely=0.32)
     window.update()
     result_dict['file_dict'] = selected_path
 
@@ -60,6 +64,8 @@ def select_save(var, label, button, window, result_dict):
 
     button['state'] = NORMAL
     button['text'] = '保存路径'
+
+
 ############################################################# 批量检测组件函数结束
 
 ############################################################### 单张检测组件函数
@@ -68,7 +74,9 @@ def save_img(window, button, result_dict):
     button['state'] = DISABLED
     button['text'] = '保存中'
 
-    folder_path = filedialog.asksaveasfilename(title=u'保存', initialfile=result_dict['name'], filetypes=[("JPG图片", ".jpg"), ("PNG图片", ".png"), ("JPEG图片", ".jpeg"), ("TIF图片", ".tif")])
+    folder_path = filedialog.asksaveasfilename(title=u'保存', initialfile=result_dict['name'],
+                                               filetypes=[("JPG图片", ".jpg"), ("PNG图片", ".png"),
+                                                          ("JPEG图片", ".jpeg"), ("TIF图片", ".tif")])
 
     var = StringVar()
     l = Label(window, textvariable=var, bg="#f0f0f0", font=('宋体', 8), width=100, height=1)
@@ -83,5 +91,28 @@ def save_img(window, button, result_dict):
 
     button['state'] = NORMAL
     button['text'] = '保存'
+
+
 ############################################################### 单张检测组件函数结束
+
+# 用于按钮
+def load_image(filename):
+    image = Image.open(filename)
+    image = image.convert("RGBA")
+    # datas = image.getdata()
+    #
+    # new_image = []
+    # for item in datas:
+    #     # 如果像素的RGB不是白色，就保留该像素，否则将其设为透明
+    #     if item[0] != 255 or item[1] != 255 or item[2] != 255:
+    #         new_image.append(item)
+    #     else:
+    #         new_image.append((255, 255, 255, 0))
+    #
+    # image.putdata(new_image)
+
+    image.thumbnail((240, 60))
+    photo = ImageTk.PhotoImage(image)
+
+    return photo
 

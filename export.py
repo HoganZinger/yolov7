@@ -85,7 +85,7 @@ if __name__ == '__main__':
         import coremltools as ct
 
         print('\nStarting CoreML export with coremltools %s...' % ct.__version__)
-        # convert model from torchscript and apply pixel scaling as per detect.py
+        # convert model from torchscript and apply pixel scaling as per micro_detect.py
         ct_model = ct.convert(ts, inputs=[ct.ImageType('image', shape=img.shape, scale=1 / 255.0, bias=[0, 0, 0])])
         bits, mode = (8, 'kmeans_lut') if opt.int8 else (16, 'linear') if opt.fp16 else (32, None)
         if bits < 32:
