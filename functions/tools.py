@@ -41,8 +41,8 @@ def select_folder(var, label, button, window, result_dict):
 
     folder_path = filedialog.askdirectory()
     selected_path = folder_path
-    var.set('读取自: ' + selected_path)
-    label.place(relx=0.04, rely=0.32)
+    # var.set('读取自: ' + selected_path)
+    # label.place(relx=0.04, rely=0.32)
     window.update()
     result_dict['file_dict'] = selected_path
 
@@ -85,7 +85,7 @@ def save_img(window, button, result_dict):
     result_dict['res_img'].savefig(selected_path, dpi=300, bbox_inches='tight')
     # cv2.imencode(result_dict['name'][-4:], result_dict['res_img'])[1].tofile(selected_path)
     var.set('保存结果至' + selected_path)
-    l.place(relx=0.04, rely=0.44)
+    l.place(relx=0.24, rely=0.44)
     window.update()
     os.startfile(folder_path)
 
@@ -95,24 +95,43 @@ def save_img(window, button, result_dict):
 
 ############################################################### 单张检测组件函数结束
 
-# 用于按钮
-def load_image(filename):
+# 用于按钮显示
+def load_image(os_path,  filename, type):
+    filename = os.path.join(os_path, filename)
+    # print("buton img path:{}".format(filename))
     image = Image.open(filename)
     image = image.convert("RGBA")
-    # datas = image.getdata()
-    #
-    # new_image = []
-    # for item in datas:
-    #     # 如果像素的RGB不是白色，就保留该像素，否则将其设为透明
-    #     if item[0] != 255 or item[1] != 255 or item[2] != 255:
-    #         new_image.append(item)
-    #     else:
-    #         new_image.append((255, 255, 255, 0))
-    #
-    # image.putdata(new_image)
-
-    image.thumbnail((240, 60))
+    if type == 'main':
+        image.thumbnail((240, 60))
+    elif type == 'micro' or type == 'trait':
+        image.thumbnail((600, 140))
+    elif type == 'small':
+        image.thumbnail((160, 50))
+    elif type == 'title':
+        image.thumbnail((300, 70))
+    else:
+        image.thumbnail((240, 60))
     photo = ImageTk.PhotoImage(image)
 
     return photo
 
+# 接口界面展示背景图，os_path以项目路径为起始路径
+def load_bg(window, os_path, path):
+    window.update()
+    bg_path = os.path.join(os_path, path)
+    bg_image = Image.open(bg_path)
+    # print(bg_path)
+    # print(window.winfo_width(), window.winfo_height())
+    bg_image = bg_image.resize((window.winfo_width(), window.winfo_height()))
+    bg_photo = ImageTk.PhotoImage(bg_image)
+    window.image = bg_photo
+    # 创建一个 Canvas
+    canvas = tk.Canvas(window, width=window.winfo_width(), height=window.winfo_height())
+    canvas.pack(fill="both", expand=True)
+    # 在 Canvas 上显示背景图像
+    canvas.create_image(0, 0, anchor="nw", image=window.image)
+    # # canvas.tag_lower(bg_photo)  # 将图像放置在最底层
+
+# 清除窗口组件，用于窗口刷新
+def clear_window(window):
+    window.after(0, lambda: [widget.destroy() for widget in window.winfo_children()])

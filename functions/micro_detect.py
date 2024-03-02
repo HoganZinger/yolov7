@@ -71,7 +71,7 @@ def detect(type, bar, window, device, source, target, name, weights, classifier,
     # Set Dataloader
     dataset = LoadImages(source, img_size=imgsz, stride=stride)
     nums = len(dataset)
-    bar.place(relx=0.27, width=300, height=10, rely=0.72)
+    bar.place(relx=0.35, width=300, height=10, rely=0.63)
     bar['maximum'] = nums
     bar['value'] = 0
 
@@ -318,7 +318,7 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
     # Set Dataloader
     dataset = LoadImages(source, img_size=imgsz, stride=stride)
     nums = len(dataset)
-    bar.place(relx=0.27, width=300, height=10, rely=0.72)
+    bar.place(relx=0.35, width=300, height=10, rely=0.63)
     bar['maximum'] = nums
     bar['value'] = 0
 

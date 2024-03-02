@@ -4,6 +4,7 @@ from tkinter.ttk import Progressbar
 import datetime
 import torch
 from functions.micro_detect import detect, detect_one
+from functions.tools import clear_window
 import threading
 import cv2
 import numpy as np
@@ -298,12 +299,14 @@ def change_type(change, batch_objs, single_objs, window): ######################
         start_detect.place(relx=0.42, rely=0.66)
         # l0.place(relx=0.27, rely=0.77)
 
-def show_interface_1():
+def show_interface_1(window):
     # 创建窗口
-    interface_1_window = tkinter.Toplevel()
+    interface_1_window = window
     interface_1_window.title('南方菟丝子显微结构检测')
     interface_1_window.geometry('1200x800')
     interface_1_window.resizable(False, False) # 禁止最大化
+    clear_window(interface_1_window)
+
 
     ########################################################### 批量检测组件声明
     # lable，说明输入框作用
@@ -332,13 +335,6 @@ def show_interface_1():
     # 选择保存路径的按钮
     save_folder = Button(interface_1_window, text="保存路径", width=15, height=2, command=lambda: thread_it(select_save, var2, l5, save_folder, interface_1_window))
 
-    # label，展示标签
-    label_img = PhotoImage(file='../imgs/labels.png')
-    l0 = Label(interface_1_window,
-        image=label_img,    # 标签的文字
-        bg="#f0f0f0",     # 标签背景颜色
-        width=300, height=100  # 标签长宽
-        )
     #################################################### 批量检测组件声明结束
 
     ############################################################### 单张检测组件声明

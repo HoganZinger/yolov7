@@ -334,7 +334,7 @@ def show_interface_3():
                          command=lambda: thread_it(select_save, var2, l5, save_folder, interface_3_window))
 
     # label，展示标签
-    label_img = PhotoImage(file='../imgs/labels.png')
+    label_img = PhotoImage(file='imgs/labels.png')
     l0 = Label(interface_3_window,
                image=label_img,  # 标签的文字
                bg="#f0f0f0",  # 标签背景颜色
