@@ -5,6 +5,7 @@ function:
 """
 import tkinter as tk
 from tkinter import DISABLED, NORMAL, StringVar, Label, Button
+from tkinter.ttk import Progressbar
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Inches
@@ -120,7 +121,7 @@ def result_select_event(event, window, combobox, listbox):
     result_list_event(event, window)
 
 
-def generate_report(pre_list, img_list, path_list, button, outdir, window, report_infos):
+def generate_report(pre_list, img_list, path_list, button, outdir, window, report_infos, bar):
 
     button['state'] = DISABLED
     button['text'] = '报告生成中'
@@ -129,6 +130,10 @@ def generate_report(pre_list, img_list, path_list, button, outdir, window, repor
     serial = report_infos['serial_entry'].get()
     name = report_infos['name_entry'].get()
     item = report_infos['item_entry'].get()
+
+    bar.place(relx=0.28, rely=0.79)
+    bar['maximum'] = len(pre_list)
+    bar['value'] = 0
 
     # 处理保存路径
     var = StringVar()
@@ -199,16 +204,29 @@ def generate_report(pre_list, img_list, path_list, button, outdir, window, repor
     headers = ['序号', '图片名称', '结果']
     for i, header in enumerate(headers):
         table.cell(0, i).text = header
-    for idx, (img_name, result) in enumerate(zip(img_name_list, pre_list), 1):
-        print(idx, img_name, result)
+    for idx, (img_name, pre_result) in enumerate(zip(img_name_list, pre_list), 1):
         row_cells = table.add_row().cells
+        row_cells[0].width = 0.1
         row_cells[0].text = str(idx)
         row_cells[1].text = str(img_name)  # 图片名称
+
+        if pre_result == "未检测出有效目标":
+            pre_result = []
+        result = f"检测到{len(pre_result)}个目标结构"
+        print(idx, img_name, result)
         row_cells[2].text = str(result)  # 检测结果
     doc.add_paragraph('检验结果附图：')
-    for img_array, result, img_name in zip(img_list, pre_list, img_name_list):
-        paragraph = doc.add_paragraph()
-        run = paragraph.add_run()
+
+    results_table = doc.add_table(rows=1, cols=3)
+    heads = ['序号', '图片', '结果']
+    for i, head in enumerate(heads):
+        results_table.cell(0, i).text = head
+    cnt = 1
+    for img_array, list_result, img_name in zip(img_list, pre_list, img_name_list):
+        r_cells = results_table.add_row().cells
+        r_cells[0].width = 0.1
+        r_cells[0].text = str(cnt)
+
         image = Image.fromarray(img_array)
         image_path = './img_for_report.png'
         image.save(image_path)
@@ -217,18 +235,42 @@ def generate_report(pre_list, img_list, path_list, button, outdir, window, repor
             image = Image.open(image_path)
             output = BytesIO()
             image.save(output, format='JPEG', quality=5)
+            cell = results_table.cell(cnt, 1)
+            cell_paragraph = cell.paragraphs[0]
+            run = cell_paragraph.add_run()
             try:
-                run.add_picture(output, width=Inches(4), height=Inches(3))
+                run.add_picture(image_path, width=Inches(2.4), height=Inches(1.8))
             except Exception as e:
                 print(f"Error adding picture. still too big: {e}")
         else:
+            cell = results_table.cell(cnt, 1)
+            cell_paragraph = cell.paragraphs[0]
+            run = cell_paragraph.add_run()
             try:
-                run.add_picture(image_path, width=Inches(3), height=Inches(2))
+                run.add_picture(image_path, width=Inches(2.4), height=Inches(1.8))
             except Exception as e:
                 print(f"Error adding picture, probably due to wrong path or too big picture: {e}")
 
-        run.add_text(f'{result}')
-        doc.add_paragraph(img_name)
+        cell = results_table.cell(cnt, 2)
+        # cell_paragraph = cell.paragraphs[0]
+        if len(list_result) == 0 or list_result == "未检测出有效目标":
+            cell = results_table.cell(cnt, 2)
+            cell.text = "未检测出有效目标"
+        else:
+            result_table = cell.add_table(rows=1, cols=2)
+            hdr = ['类别', '相似度']
+            for i, hd in enumerate(hdr):
+                result_table.cell(0, i).text = hd
+
+            for result in list_result:
+                print("result: {}".format(result))
+                row_cells = result_table.add_row().cells
+                row_cells[0].text = result[0]
+                row_cells[1].text = result[1]
+
+        cnt += 1
+        bar['value'] += 1
+        window.update()
 
     doc.save(file_path)
 
@@ -237,7 +279,7 @@ def generate_report(pre_list, img_list, path_list, button, outdir, window, repor
     print("complete!")
 
     var.set('报告已输出到指定路径')
-    l.place(relx=0.45, rely=0.80)
+    l.place(relx=0.55, rely=0.80)
     window.update()
     button['state'] = NORMAL
     button['text'] = '生成检测报告'
@@ -321,7 +363,7 @@ def show_report_window(window, button, result_dict, pre_list, path_list, img_lis
     name_entry.pack()
     item_entry.pack()
 
-
+    bar = Progressbar(report_window)
 
     # lable，说明输入框作用
     var2 = StringVar()
@@ -338,7 +380,7 @@ def show_report_window(window, button, result_dict, pre_list, path_list, img_lis
                     item_entry, 'default_serial': default_serial, 'default_name': default_name}
     generate = Button(report_window, image=confir_img, width=150, height=40,
                       command=lambda: generate_report(pre_list, img_list, path_list, generate, result_dict['save_path'],
-                                                      report_window, report_infos))
+                                                      report_window, report_infos, bar))
 
     # 布置按钮
     title.place(relx=0.26, rely=0.05)

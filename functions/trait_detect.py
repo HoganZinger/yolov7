@@ -163,7 +163,7 @@ def process(medicine_kind, type, img0, model, cls_model, imgsz, stride, device, 
     infos = []
     rowLabels = []
     res_patches = []
-    cnt = 0
+    cnt = 1
     for img0 in patches:
         # Padded resize
         img = letterbox(img0, imgsz, stride=stride)[0]

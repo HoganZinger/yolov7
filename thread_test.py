@@ -30,6 +30,7 @@ def open_child_window():
 
     button = tk.Button(child_window, text="Clear and Redraw", command=clear_and_redraw)
     button.pack()
+    button.pack()
 
 open_button = tk.Button(root, text="Open Child Window", command=open_child_window)
 open_button.pack()

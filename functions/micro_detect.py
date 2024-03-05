@@ -437,7 +437,7 @@ def process_2(type, img0, model, fg_classifier0, fg_classifier1, fg_classifier2,
     infos = []
     rowLabels = []
     res_patches = []
-    cnt = 0
+    cnt = 1
     result = []
     for img0 in patches:
         # Padded resize
