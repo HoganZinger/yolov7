@@ -47,13 +47,13 @@ def draw_res(img, infos, rowLabels):
     return plt
 
 
-def detect(type, bar, window, device, source, target, name, weights, classifier,  classes=None, save_conf=False, agnostic_nms=False, img_size=224, conf_thres=0.6, iou_thres=0.45, view_img=False, save_txt=False, trace=True, save_img = True, exist_ok=False, augment=False):
+def detect(bar, window, device, source, weights, classifier,  classes=None, save_conf=False, agnostic_nms=False, img_size=224, conf_thres=0.6, iou_thres=0.45, view_img=False, save_txt=False, trace=True, save_img = True, exist_ok=False, augment=False):
     source = source
     weights = weights
     view_img = view_img
     imgsz = img_size
     save_img = save_img and not source.endswith('.txt')
-    save_path = target + name
+    # save_path = target + name
 
     # Initialize
     set_logging()
@@ -83,6 +83,9 @@ def detect(type, bar, window, device, source, target, name, weights, classifier,
     old_img_w = old_img_h = imgsz
     old_img_b = 1
 
+    img_list = []
+    results_list = []
+    path_list = []
     for path, img, im0s, vid_cap in dataset:
         img0 = im0s
         img = torch.from_numpy(img).to(device)
@@ -91,17 +94,23 @@ def detect(type, bar, window, device, source, target, name, weights, classifier,
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
 
-        plt = process(type, img0, model, cls_model, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
+        infos, res = process('group', img0, model, cls_model, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
 
-        # Save results (image with detections)
-        filepath = save_path + '/' + path.split('\\')[-1]
-        if save_img:
-            plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        # # Save results (image with detections)
+        # filepath = save_path + '/' + path.split('\\')[-1]
+        # if save_img:
+        #     plt.savefig(filepath, dpi=300, bbox_inches='tight')
 
         bar['value'] += 1
         window.update()
 
-def detect_one(type, img0, device, weights, classifier, classes=None, save_conf=False, agnostic_nms=False, img_size=224, conf_thres=0.6, iou_thres=0.45, view_img=False, save_txt=False, trace=True, save_img = True, exist_ok=False, augment=False):
+        results_list.append(infos)
+        img_list.append(res)
+        path_list.append(path)
+
+    return results_list, img_list, path_list
+
+def detect_one(img0, device, weights, classifier, classes=None, save_conf=False, agnostic_nms=False, img_size=224, conf_thres=0.6, iou_thres=0.45, view_img=False, save_txt=False, trace=True, save_img = True, exist_ok=False, augment=False):
     weights = weights
     view_img = view_img
     save_txt = save_txt
@@ -123,7 +132,7 @@ def detect_one(type, img0, device, weights, classifier, classes=None, save_conf=
     cls_model.eval()
     cls_model = cls_model.to(device)
 
-    plt = process(type, img0, model, cls_model, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
+    plt, infos = process('one', img0, model, cls_model, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
 
     return plt
 
@@ -271,6 +280,8 @@ def process(type, img0, model, cls_model, imgsz, stride, device, augment, conf_t
             im0 = cv2.cvtColor(np.asarray(im0), cv2.COLOR_RGB2BGR)
             res_patches.append(im0)
 
+
+
     # merge patches
     img0 = np.zeros((width, length, depth), dtype=np.uint8)
     index = 0
@@ -279,9 +290,15 @@ def process(type, img0, model, cls_model, imgsz, stride, device, augment, conf_t
             img0[i * cut_width: min(width, (i + 1) * cut_width), j * cut_length: min(length, (j + 1) * cut_length), :] = \
             res_patches[index]
             index += 1
-    plt = draw_res(img0, infos, rowLabels)
 
-    return plt
+    # 多个检测时不需要画出结果
+    if type == 'group':
+        print("batch test, no plot!")
+        return infos, img0
+    plt = draw_res(img0, infos, rowLabels)
+    print("single test, plot done!")
+
+    return plt, infos
 
 # 批量检测，无需保存plt
 def detect_2(bar, window, device, source,  weights, classifier0, classifier1, classifier2,  classes=None, save_conf=False, agnostic_nms=False, img_size=224, conf_thres=0.6, iou_thres=0.45, view_img=False, save_txt=False, trace=True, save_img = True, exist_ok=False, augment=False):
@@ -331,8 +348,8 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
     old_img_b = 1
 
     result_list = []
+    img_list = []
     path_list = []
-    res_img_list = []
     for path, img, im0s, vid_cap in dataset:
         img0 = im0s
         img = torch.from_numpy(img).to(device)
@@ -341,7 +358,7 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
 
-        result = process_2('group', img0, model, cls_model0, cls_model1, cls_model2, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
+        result, res = process_2('group', img0, model, cls_model0, cls_model1, cls_model2, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
 
         # # Save results (image with detections)
         # filepath = save_path + '/' + path.split('\\')[-1]
@@ -351,10 +368,10 @@ def detect_2(bar, window, device, source,  weights, classifier0, classifier1, cl
         # window.update()
 
         result_list.append(result)
+        img_list.append(res)
         path_list.append(path)
 
-
-    return result_list, path_list
+    return result_list, img_list, path_list
 
 
 def detect_one_2(img0, device, weights, classifier0, classifier1, classifier2, classes=None, save_conf=False, agnostic_nms=False, img_size=224, conf_thres=0.6, iou_thres=0.45, view_img=False, save_txt=False, trace=True, save_img = True, exist_ok=False, augment=False):
@@ -387,9 +404,9 @@ def detect_one_2(img0, device, weights, classifier0, classifier1, classifier2, c
     cls_model2.eval()
     cls_model2 = cls_model2.to(device)
 
-    plt, result = process_2('one', img0, model, cls_model0, cls_model1, cls_model2, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
+    plt = process_2('one', img0, model, cls_model0, cls_model1, cls_model2, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img)
 
-    return plt, result
+    return plt
 
 
 def process_2(type, img0, model, fg_classifier0, fg_classifier1, fg_classifier2, imgsz, stride, device, augment, conf_thres, iou_thres, classes, agnostic_nms, save_img, view_img):
@@ -557,9 +574,7 @@ def process_2(type, img0, model, fg_classifier0, fg_classifier1, fg_classifier2,
             im0 = cv2.cvtColor(np.asarray(im0), cv2.COLOR_RGB2BGR)
             res_patches.append(im0)
 
-    # 多个检测时不需要画出结果
-    if type == 'group':
-        return infos
+
 
     # merge patches
     img0 = np.zeros((width, length, depth), dtype=np.uint8)
@@ -570,25 +585,31 @@ def process_2(type, img0, model, fg_classifier0, fg_classifier1, fg_classifier2,
                 res_patches[index]
             index += 1
 
+    # 多个检测时不需要画出结果
+    if type == 'group':
+        return infos, img0
 
     plt = draw_res(img0, infos, rowLabels)
-    return plt, infos
+    return plt
 
 
 def set_name(label, type, flag, pred_label):
     name = 'default'
     print("flag is " + flag)
     print("type is " + type)
-    print('final prediction label is: %d'%(pred_label))
+    print('final prediction label is: {}'.format(pred_label))
 
     if type == 'tusizi':
         if 'side-complete' in label:
             name = '南方菟丝子-侧面观-完整'
+            return name
         if 'side-incomplete' in label:
             name = '南方菟丝子-侧面观-不完整'
+            return name
         else:
             name = '南方菟丝子-表面观'
-        return name
+            return name
+
 
     if type == 'suanzaoren':
         if flag == 'surface':

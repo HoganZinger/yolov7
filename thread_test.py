@@ -35,3 +35,6 @@ open_button = tk.Button(root, text="Open Child Window", command=open_child_windo
 open_button.pack()
 
 root.mainloop()
+# tuple_data = (1, 2, 3)
+# list_data = list(tuple_data)
+# print(list_data)

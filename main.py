@@ -10,10 +10,10 @@ import os
 from functions import tools
 from interface import micro, trait
 
-def open_micro():
-    micro.show_micro_window()
-def open_trait():
-    trait.show_trait_window()
+def open_micro(window):
+    micro.show_micro_window(window)
+def open_trait(window):
+    trait.show_trait_window(window)
 
 # 创建选择主界面
 window = tk.Tk()
@@ -37,8 +37,8 @@ canvas.create_image(0, 0, anchor="nw", image=bg_photo)
 micro_button_photo = tools.load_image(os_path, 'button/micro_button_default.png', 'main')
 trait_button_photo = tools.load_image(os_path, 'button/trait_button_default.png', 'main')
 
-micro_button = Button(window, image=micro_button_photo, width=200, height=50, command=open_micro)
-trait_button = Button(window, image=trait_button_photo, width=200, height=50, command=open_trait)
+micro_button = Button(window, image=micro_button_photo, width=200, height=50, command=lambda: open_micro(window))
+trait_button = Button(window, image=trait_button_photo, width=200, height=50, command=lambda: open_trait(window))
 micro_button.pack(padx=20, pady=10)
 trait_button.pack(padx=20, pady=10)
 

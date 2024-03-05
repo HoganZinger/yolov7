@@ -90,13 +90,20 @@ def show_image(image_path, window):
     label.place(relx=0.58, rely=0.33)  # 设置图片在窗口中的具体位置
 
 # 结果展示列表的选中事件：显示对应的图片
-def result_list_event(event, window, path_list):
+def result_list_event(event, window, img_list):
     selection = event.widget.curselection()
     if not selection:
         return
     selected_index = int(selection[0])
-    path = path_list[selected_index]
-    show_image(path, window)
+    image_array = img_list[selected_index]
+    image = Image.fromarray(image_array)
+    label_width = 300
+    label_height = 200
+    image = image.resize((label_width, label_height), Image.ANTIALIAS)
+    photo = ImageTk.PhotoImage(image)
+    label = tk.Label(window, image=photo)
+    label.image = photo
+    label.place(relx=0.58, rely=0.33)  # 设置图片在窗口中的具体位置
 
 
 
@@ -113,7 +120,7 @@ def result_select_event(event, window, combobox, listbox):
     result_list_event(event, window)
 
 
-def generate_report(pre_list, path_list, button, outdir, window, report_infos):
+def generate_report(pre_list, img_list, path_list, button, outdir, window, report_infos):
 
     button['state'] = DISABLED
     button['text'] = '报告生成中'
@@ -199,12 +206,15 @@ def generate_report(pre_list, path_list, button, outdir, window, report_infos):
         row_cells[1].text = str(img_name)  # 图片名称
         row_cells[2].text = str(result)  # 检测结果
     doc.add_paragraph('检验结果附图：')
-    for img_path, result, img_name in zip(path_list, pre_list, img_name_list):
+    for img_array, result, img_name in zip(img_list, pre_list, img_name_list):
         paragraph = doc.add_paragraph()
         run = paragraph.add_run()
-        original_size = os.path.getsize(img_path)
+        image = Image.fromarray(img_array)
+        image_path = './img_for_report.png'
+        image.save(image_path)
+        original_size = os.path.getsize(image_path)
         if original_size > 200000:  # 图片过大，需要压缩
-            image = Image.open(img_path)
+            image = Image.open(image_path)
             output = BytesIO()
             image.save(output, format='JPEG', quality=5)
             try:
@@ -213,7 +223,7 @@ def generate_report(pre_list, path_list, button, outdir, window, report_infos):
                 print(f"Error adding picture. still too big: {e}")
         else:
             try:
-                run.add_picture(img_path, width=Inches(3), height=Inches(2))
+                run.add_picture(image_path, width=Inches(3), height=Inches(2))
             except Exception as e:
                 print(f"Error adding picture, probably due to wrong path or too big picture: {e}")
 
@@ -247,7 +257,7 @@ def on_focus_out(event, entry, default):
         entry.config(fg='grey')
 
 
-def show_report_window(window, button, result_dict, pre_list, path_list):
+def show_report_window(window, button, result_dict, pre_list, path_list, img_list):
     button['state'] = DISABLED
     button['text'] = '编辑中'
     report_window = tk.Toplevel(window)
@@ -327,7 +337,7 @@ def show_report_window(window, button, result_dict, pre_list, path_list):
     report_infos = {'date_entry': date_entry, 'name_entry': name_entry, 'serial_entry': serial_entry, 'item_entry':
                     item_entry, 'default_serial': default_serial, 'default_name': default_name}
     generate = Button(report_window, image=confir_img, width=150, height=40,
-                      command=lambda: generate_report(pre_list, path_list, generate, result_dict['save_path'],
+                      command=lambda: generate_report(pre_list, img_list, path_list, generate, result_dict['save_path'],
                                                       report_window, report_infos))
 
     # 布置按钮

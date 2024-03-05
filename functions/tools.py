@@ -135,3 +135,6 @@ def load_bg(window, os_path, path):
 # 清除窗口组件，用于窗口刷新
 def clear_window(window):
     window.after(0, lambda: [widget.destroy() for widget in window.winfo_children()])
+    # ori = window.winfo_children()
+    # for obj in ori:
+    #     obj.place_forget()
