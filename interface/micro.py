@@ -15,9 +15,10 @@ import os
 import datetime
 
 from functions.micro_detect import detect_2, detect_one_2, detect, detect_one
-from functions.tools import thread_it, source_path, select_folder, save_img, clear_window, load_bg, load_image
+from functions.tools import thread_it, source_path, select_folder, save_img, clear_window, load_bg, load_image, \
+    return_to_above, on_closing
 from functions.review import set_combobox_placeholder, combobox_set_normal_style, refresh_listbox,  \
-     refresh_result, change_selection, result_list_event, result_select_event, show_report_window,  \
+     refresh_result, change_selection,change_list, show_image, show_report_window,  \
      refresh_combobox
 
 
@@ -25,6 +26,7 @@ result_dict = {'file_dict': "", 'type': 0, 'res_img': None, 'name': "", 'save_pa
 pre_list = []
 path_list = []
 img_list = []
+result_mode = "picture_selection"
 
 # 修改当前工作目录，使得资源文件可以被正确访问
 cd = source_path('')
@@ -184,6 +186,30 @@ def select_img(var, label, window, button, button2, type):
     l0.place(relx=0.07, rely=0.33)
     window.update()
 
+# 结果展示列表的选中事件：选择图片展示并查看细分结果
+def result_list_event(event, window, img_list,  results_list):
+    global result_mode
+
+    if result_mode == "picture_selection":
+        selection = event.widget.curselection()
+        if not selection:
+            return
+        selected_index = int(selection[0])
+        show_image(img_list, window, selected_index)
+        change_list(selected_index, results_list)
+        result_mode = "result_review"
+    elif result_mode == "result_review":
+        selection = event.widget.curselection()
+        if not selection:
+            return
+        selected_index = int(selection[0])
+        if selected_index == 0:
+            refresh_listbox(results_list, pre_list)
+            result_mode = "picture_selection"
+    else:
+        return
+
+
 # 修改单张和批量检测
 def change_type(change, batch_objs, single_objs, window):
     ################################################# 重写转换函数，要正确摆放位置，并且要清除过时的label
@@ -251,11 +277,14 @@ def change_type(change, batch_objs, single_objs, window):
         report.place(relx=0.62, rely=0.77)
 
 
-def show_interface(window, info_batch, type):
-    interface_window = window
+def show_interface(prev_window, info_batch, type):
+    prev_window.withdraw()
+    interface_window = tk.Toplevel(prev_window)
+    interface_window.geometry('1000x750')
     interface_window.title(info_batch['title'])
     interface_window.resizable(False, False)  # 禁止最大化
-    clear_window(interface_window)
+    interface_window.protocol("WM_DELETE_WINDOW", lambda: on_closing(prev_window, interface_window))
+
 
     # 设置背景图片
     os_path = os.path.dirname(__file__)
@@ -298,8 +327,10 @@ def show_interface(window, info_batch, type):
                     command=lambda: thread_it(select_folder, var1, l1, folder, interface_window, result_dict))
 
     # 结果展示列表
-    results_list = tk.Listbox(interface_window, width=35, height=10)
-    results_list.bind("<<ListboxSelect>>", lambda event,window=interface_window: result_list_event(event, window, img_list))
+    results_list = tk.Listbox(interface_window, width=35, height=12)
+    results_list.bind("<<ListboxSelect>>", lambda event, window=interface_window,
+                                                  results_list=results_list: result_list_event(event, window, img_list,
+                                                                                               results_list))
     results_list.pack(padx=10, pady=10)
 
     # 选择要修改的结果
@@ -354,7 +385,7 @@ def show_interface(window, info_batch, type):
     ############################################################### 单张检测组件声明结束
 
     return_prev = Button(interface_window, width=120, height=35, image=return_img, command=lambda:
-                         return_to_micro(interface_window))
+                         return_to_above(prev_window, interface_window))
 
     # 切换单张检测和批量检测
     batch_objs = {'folder': folder, 'start_detect': start_detect, 'return_prev': return_prev, 'title': title,
@@ -389,10 +420,12 @@ def show_micro_window(prev_window):
 
     if prev_window.winfo_width() == 800:  # 这是从主界面进入
         # 创建选择主界面
-        window = tk.Toplevel()
+        prev_window.withdraw()
+        window = tk.Toplevel(prev_window)
         window.title("中药材显微结构检测")
         window.geometry('1000x750')
         window.resizable(False, False)
+        window.protocol("WM_DELETE_WINDOW", lambda: on_closing(prev_window, window))
     else:  # 这是从子功能界面返回
         window = prev_window
 
@@ -404,6 +437,7 @@ def show_micro_window(prev_window):
 
     button1_image = load_image(os_path, 'button/micro_south_button.png', 'micro')
     button2_image = load_image(os_path, 'button/micro_suanzaoren_button.png', 'micro')
+    return_image = load_image(os_path, 'button/return_to_main.png', 'small')
 
     category_1 = ('栅状细胞完整侧面观', '栅状细胞不完整侧面观', '栅状细胞表面观')
     category_2 = ('草酸钙', '草酸钙（暗）', '酸枣仁内种皮细胞', '理枣仁内种皮细胞', '酸枣仁栅状细胞表面观', '兵豆栅状细胞表面观',
@@ -422,11 +456,14 @@ def show_micro_window(prev_window):
                         command=lambda: show_interface(window, suanzaoren_batch, 'suanzaoren'))
     button2.pack(padx=20, pady=10)
 
+    return_button = tk.Button(window, image=return_image, width=120, height=35,
+                              command=lambda: return_to_above(prev_window, window))
+    return_button.pack(padx=20, pady=10)
+
     button1.place(relx=0.32, rely=0.25)
     button2.place(relx=0.32, rely=0.45)
+    return_button.place(relx=0.04, rely=0.042)
 
     window.mainloop()
 
-def return_to_micro(window):
-    clear_window(window)
-    show_micro_window(window)
+

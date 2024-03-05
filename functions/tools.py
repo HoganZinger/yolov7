@@ -132,9 +132,22 @@ def load_bg(window, os_path, path):
     canvas.create_image(0, 0, anchor="nw", image=window.image)
     # # canvas.tag_lower(bg_photo)  # 将图像放置在最底层
 
+
 # 清除窗口组件，用于窗口刷新
 def clear_window(window):
     window.after(0, lambda: [widget.destroy() for widget in window.winfo_children()])
     # ori = window.winfo_children()
     # for obj in ori:
     #     obj.place_forget()
+
+
+# 回到上级窗口
+def return_to_above(prev_window, window):
+    window.destroy()
+    prev_window.deiconify()
+
+
+# 关闭子窗口时终止主程序
+def on_closing(prev_window, window):
+    window.destroy()
+    prev_window.destroy()

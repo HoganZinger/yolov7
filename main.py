@@ -10,39 +10,44 @@ import os
 from functions import tools
 from interface import micro, trait
 
+
 def open_micro(window):
     micro.show_micro_window(window)
 def open_trait(window):
     trait.show_trait_window(window)
 
-# 创建选择主界面
-window = tk.Tk()
-window.title("欢迎使用中药材检测系统")
-# 设置界面内容
-window.geometry('800x600')
-window.resizable(False, False)
-# 加载 PNG 图像
-os_path = os.path.dirname(__file__)
-bg_path = os.path.join(os_path, './background/background.png')
-bg_image = Image.open(bg_path)
-bg_image = bg_image.resize((800, 600))
-bg_photo = ImageTk.PhotoImage(bg_image)
-# 创建一个 Canvas
-canvas = tk.Canvas(window, width=800, height=600)
-canvas.pack(fill="both", expand=True)
-# 在 Canvas 上显示背景图像
-canvas.create_image(0, 0, anchor="nw", image=bg_photo)
-# canvas.tag_lower(bg_photo)  # 将图像放置在最底层
+def show_main_window():
+    # 创建选择主界面
+    window = tk.Tk()
+    window.title("欢迎使用中药材检测系统")
+    # 设置界面内容
+    window.geometry('800x600')
+    window.resizable(False, False)
+    # 加载 PNG 图像
+    os_path = os.path.dirname(__file__)
+    bg_path = os.path.join(os_path, './background/background.png')
+    bg_image = Image.open(bg_path)
+    bg_image = bg_image.resize((800, 600))
+    bg_photo = ImageTk.PhotoImage(bg_image)
+    # 创建一个 Canvas
+    canvas = tk.Canvas(window, width=800, height=600)
+    canvas.pack(fill="both", expand=True)
+    # 在 Canvas 上显示背景图像
+    canvas.create_image(0, 0, anchor="nw", image=bg_photo)
+    # canvas.tag_lower(bg_photo)  # 将图像放置在最底层
 
-micro_button_photo = tools.load_image(os_path, 'button/micro_button_default.png', 'main')
-trait_button_photo = tools.load_image(os_path, 'button/trait_button_default.png', 'main')
+    micro_button_photo = tools.load_image(os_path, 'button/micro_button_default.png', 'main')
+    trait_button_photo = tools.load_image(os_path, 'button/trait_button_default.png', 'main')
 
-micro_button = Button(window, image=micro_button_photo, width=200, height=50, command=lambda: open_micro(window))
-trait_button = Button(window, image=trait_button_photo, width=200, height=50, command=lambda: open_trait(window))
-micro_button.pack(padx=20, pady=10)
-trait_button.pack(padx=20, pady=10)
+    micro_button = Button(window, image=micro_button_photo, width=200, height=50, command=lambda: open_micro(window))
+    trait_button = Button(window, image=trait_button_photo, width=200, height=50, command=lambda: open_trait(window))
+    micro_button.pack(padx=20, pady=10)
+    trait_button.pack(padx=20, pady=10)
 
-micro_button.place(relx=0.38, rely=0.3)
-trait_button.place(relx=0.38, rely=0.48)
+    micro_button.place(relx=0.38, rely=0.3)
+    trait_button.place(relx=0.38, rely=0.48)
 
-window.mainloop()
+    window.mainloop()
+
+
+show_main_window()

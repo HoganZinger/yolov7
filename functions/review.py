@@ -53,7 +53,8 @@ def refresh_combobox(combobox, new_items):
 # 人工结果复查，将结果列表中对应条目改为人工给出的类型
 def refresh_result(pre_list, category_select, results_list, result_select, path_list, window):
     selected_index = result_select.current()
-    if selected_index == -1:
+    category_num = category_select.current()
+    if selected_index == -1 or category_num == -1:  # 未选择结果或类别
         return
     selected_category = category_select.get()
     current_result = pre_list
@@ -65,37 +66,25 @@ def refresh_result(pre_list, category_select, results_list, result_select, path_
 
 
 # 修改选中的检测结果
-def change_selection(results_select, option):
+def change_selection(results_select, option, max):
     selected_index = results_select.current()
     # 未选中任一选项
     if selected_index == -1:
         return
     if option == 'prev':
+        if selected_index == 0:
+            return
         results_select.current(selected_index - 1)
     if option == 'next':
+        if selected_index == max:
+            return
         results_select.current(selected_index + 1)
     else:
         return
 
 
 # 显示给定路径下的图片
-def show_image(image_path, window):
-    image = Image.open(image_path)
-    label_width = 300
-    label_height = 200
-    image = image.resize((label_width, label_height), Image.ANTIALIAS)
-
-    photo = ImageTk.PhotoImage(image)
-    label = tk.Label(window, image=photo)
-    label.image = photo
-    label.place(relx=0.58, rely=0.33)  # 设置图片在窗口中的具体位置
-
-# 结果展示列表的选中事件：显示对应的图片
-def result_list_event(event, window, img_list):
-    selection = event.widget.curselection()
-    if not selection:
-        return
-    selected_index = int(selection[0])
+def show_image(img_list, window, selected_index):
     image_array = img_list[selected_index]
     image = Image.fromarray(image_array)
     label_width = 300
@@ -106,7 +95,44 @@ def result_list_event(event, window, img_list):
     label.image = photo
     label.place(relx=0.58, rely=0.33)  # 设置图片在窗口中的具体位置
 
+# 获取listbox内容
+def get_listbox_items(listbox):
+    items = []
+    for i in range(listbox.size()):
+        items.append(list(listbox.get(i)))
+    return items
 
+# 对于选中的条目进行细分展示
+def change_list(selected_index, results_list):
+    pre_list = get_listbox_items(results_list)
+    # print("pre_list:{}".format(pre_list))
+    # print("selected_index:{}".format(selected_index))
+    fg_results = pre_list[selected_index]
+    fg_results.insert(0, "返回上一级")
+    refresh_listbox(results_list, fg_results)
+
+
+
+def result_list_event(event, window, img_list, pre_list, results_list):
+    global result_mode
+    if result_mode == "picture_selection":
+        selection = event.widget.curselection()
+        if not selection:
+            return
+        selected_index = int(selection[0])
+        show_image(img_list, window, selected_index)
+        change_list(pre_list, selected_index, results_list)
+        result_mode = "result_review"
+    elif result_mode == "result_review":
+        selection = event.widget.curselection()
+        if not selection:
+            return
+        selected_index = int(selection[0])
+        if selected_index == 0:
+            refresh_listbox(results_list, pre_list)
+            result_mode = "picture_selection"
+    else:
+        return
 
 # 选择结果下拉栏的选中事件，调用结果展示列表的选中事件
 def result_select_event(event, window, combobox, listbox):
