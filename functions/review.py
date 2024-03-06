@@ -50,20 +50,6 @@ def refresh_combobox(combobox, new_items):
     combobox['values'] = new_items
 
 
-# 人工结果复查，将结果列表中对应条目改为人工给出的类型
-def refresh_result(pre_list, category_select, results_list, result_select, path_list, window):
-    selected_index = result_select.current()
-    category_num = category_select.current()
-    if selected_index == -1 or category_num == -1:  # 未选择结果或类别
-        return
-    selected_category = category_select.get()
-    current_result = pre_list
-    current_result[selected_index] = selected_category
-    refresh_listbox(results_list, current_result)
-    refresh_combobox(result_select, current_result)
-    results_list.selection_set(selected_index)
-    show_image(path_list[selected_index], window)
-
 
 # 修改选中的检测结果
 def change_selection(results_select, option, max):
@@ -93,7 +79,7 @@ def show_image(img_list, window, selected_index):
     photo = ImageTk.PhotoImage(image)
     label = tk.Label(window, image=photo)
     label.image = photo
-    label.place(relx=0.58, rely=0.33)  # 设置图片在窗口中的具体位置
+    label.place(relx=0.58, rely=0.31)  # 设置图片在窗口中的具体位置
 
 # 获取listbox内容
 def get_listbox_items(listbox):
@@ -103,13 +89,20 @@ def get_listbox_items(listbox):
     return items
 
 # 对于选中的条目进行细分展示
-def change_list(selected_index, results_list):
+def change_list(selected_index, results_list, results_select):
     pre_list = get_listbox_items(results_list)
     # print("pre_list:{}".format(pre_list))
     # print("selected_index:{}".format(selected_index))
     fg_results = pre_list[selected_index]
-    fg_results.insert(0, "返回上一级")
+    print("fg_results:{}".format(fg_results))
+    if fg_results == ['未', '检', '测', '出', '有', '效', '目', '标']:
+        fg_results = ['未检测出有效目标']
+    results_select["values"] = fg_results
+    if fg_results[0] != "返回上一级":
+        fg_results.insert(0, "返回上一级")
     refresh_listbox(results_list, fg_results)
+
+
 
 
 
@@ -250,8 +243,11 @@ def generate_report(pre_list, img_list, path_list, button, outdir, window, repor
     cnt = 1
     for img_array, list_result, img_name in zip(img_list, pre_list, img_name_list):
         r_cells = results_table.add_row().cells
-        r_cells[0].width = 0.1
+        r_cells[0].width = docx.shared.Inches(0.2)
+        remaining_width = (docx.shared.Inches(6.5) - docx.shared.Inches(0.2)) / 2
         r_cells[0].text = str(cnt)
+        r_cells[1].width = remaining_width
+        r_cells[2].width = remaining_width
 
         image = Image.fromarray(img_array)
         image_path = './img_for_report.png'

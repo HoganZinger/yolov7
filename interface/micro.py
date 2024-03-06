@@ -18,7 +18,7 @@ from functions.micro_detect import detect_2, detect_one_2, detect, detect_one
 from functions.tools import thread_it, source_path, select_folder, save_img, clear_window, load_bg, load_image, \
     return_to_above, on_closing
 from functions.review import set_combobox_placeholder, combobox_set_normal_style, refresh_listbox,  \
-     refresh_result, change_selection,change_list, show_image, show_report_window,  \
+     change_selection,change_list, show_image, show_report_window,  \
      refresh_combobox
 
 
@@ -27,13 +27,14 @@ pre_list = []
 path_list = []
 img_list = []
 result_mode = "picture_selection"
+review_index = -1
 
 # 修改当前工作目录，使得资源文件可以被正确访问
 cd = source_path('')
 os.chdir(cd)
 
 # 批量检测的函数
-def detect_batch(indir, outdir, button, bar, window, results_list, result_select, type):
+def detect_batch(indir, button, bar, window, results_list, result_select, type):
     global path_list
     global pre_list
     global img_list
@@ -276,7 +277,63 @@ def change_type(change, batch_objs, single_objs, window):
         next_result.place(relx=0.855, rely=0.74)
         report.place(relx=0.62, rely=0.77)
 
+# 结果展示列表的选中事件：选择图片展示并查看细分结果;选择的同时设置好复查要用到的结果选择下拉栏内容
+def result_list_event(event, window, img_list,  results_list, results_select):
+    global result_mode
+    global review_index
+    if result_mode == "picture_selection":
+        selection = event.widget.curselection()
+        if not selection:
+            return
+        selected_index = int(selection[0])
+        review_index = selected_index  # 保存图片索引
+        show_image(img_list, window, selected_index)
+        change_list(selected_index, results_list, results_select)
+        result_mode = "result_review"
+    elif result_mode == "result_review":
+        selection = event.widget.curselection()
+        if not selection:
+            return
+        selected_index = int(selection[0])
+        review_index = selected_index
+        if selected_index == 0:
+            refresh_listbox(results_list, pre_list)
+            result_mode = "picture_selection"
+            results_select["values"] = ""
+    else:
+        return
+# 人工结果复查，将结果列表中对应条目改为人工给出的类型
+def refresh_result(category_select, results_list, result_select, window, result_mode):
+    global pre_list
+    var = StringVar()
+    remind = Label(window, textvariable=var, width=15, height=2)
+    if result_mode == 'result_review':
+        selected_index = result_select.current()
+        category_num = category_select.current()
+        if selected_index == -1 or category_num == -1:  # 未选择结果或类别
+            return
+        selected_category = category_select.get()
+        print("current review index:{}".format(review_index))
+        print("selected index:{}".format(selected_index))
+        print("prediction for review: {}".format(pre_list))
+        current_result = pre_list[review_index]
+        if type(current_result) != list:
+            current_result = [current_result]
 
+        if current_result[0] != "返回上一级":
+            current_result.insert(0, "返回上一级")
+        print("current chosen picture prediction: {}".format(current_result))
+        current_result[selected_index + 1] = [selected_category, "人工复查"]
+        print("renewed picture prediction: {}".format(current_result))
+        refresh_listbox(results_list, current_result)
+        refresh_combobox(result_select, current_result[1:])
+        pre_list[review_index] = current_result[1:]
+        var.set('所选结果已更新')
+        remind.place(relx=0.47, rely=0.68)
+        print("更新后的结果为：{}".format(pre_list))
+    else:
+        var.set('请选择细分结果')
+        remind.place(relx=0.47, rely=0.68)
 def show_interface(prev_window, info_batch, type):
     prev_window.withdraw()
     interface_window = tk.Toplevel(prev_window)
@@ -284,7 +341,6 @@ def show_interface(prev_window, info_batch, type):
     interface_window.title(info_batch['title'])
     interface_window.resizable(False, False)  # 禁止最大化
     interface_window.protocol("WM_DELETE_WINDOW", lambda: on_closing(prev_window, interface_window))
-
 
     # 设置背景图片
     os_path = os.path.dirname(__file__)
@@ -318,20 +374,12 @@ def show_interface(prev_window, info_batch, type):
     bar = Progressbar(interface_window)
     # 按钮，点击则开始一次批量检测
     start_detect = Button(interface_window, text='开始检测', width=200, height=50, image=start_detect_img,
-                          command=lambda: thread_it(detect_batch, result_dict['file_dict'], result_dict['save_path'],
-                                                    start_detect, bar, interface_window, results_list, result_select,
-                                                    type))  # 点击按钮执行一# 个名为“hit_me”的函数
+                          command=lambda: thread_it(detect_batch, result_dict['file_dict'], start_detect, bar,
+                                                    interface_window, results_list, result_select, type))
 
     # 按钮，选择待测图片所在文件夹
     folder = Button(interface_window, text="待测图片文件夹", width=200, height=50, image=select_folder_img,
                     command=lambda: thread_it(select_folder, var1, l1, folder, interface_window, result_dict))
-
-    # 结果展示列表
-    results_list = tk.Listbox(interface_window, width=35, height=12)
-    results_list.bind("<<ListboxSelect>>", lambda event, window=interface_window,
-                                                  results_list=results_list: result_list_event(event, window, img_list,
-                                                                                               results_list))
-    results_list.pack(padx=10, pady=10)
 
     # 选择要修改的结果
     placeholder1 = "请选择要修正的结果"
@@ -340,8 +388,17 @@ def show_interface(prev_window, info_batch, type):
     result_select = ttk.Combobox(interface_window, state="readonly")
     # result_select.bind("<<ComboboxSelected>>", lambda event, window=interface_window, combobox=result_select,
     #                                         listbox=results_list: result_select_event(event, window, combobox, listbox))
-    result_select['values'] = pre_list
+
+    result_select['values'] = ""
     result_select.pack(pady=10)
+
+    # 结果展示列表
+    results_list = tk.Listbox(interface_window, width=35, height=12)
+    results_list.bind("<<ListboxSelect>>", lambda event, window=interface_window, results_list=results_list,
+                      result_select=result_select:
+                      result_list_event(event, window, img_list, results_list, result_select))
+    results_list.pack(padx=10, pady=10)
+
     # 选择要修正为的类别
     placeholder2 = "请选择类别"
     style2 = ttk.Style()
@@ -354,12 +411,13 @@ def show_interface(prev_window, info_batch, type):
     set_combobox_placeholder(category_select, placeholder2)
 
     confirm = Button(interface_window, text='确认', width=200, height=50, font=('宋体', 10), image=confirm_img,
-                     command=lambda : thread_it(refresh_result, pre_list, category_select, results_list, result_select,
-                                                path_list, interface_window))
+                     command=lambda: refresh_result(category_select, results_list, result_select, interface_window,
+                                                    result_mode))
+    max = len(pre_list)
     prev_result = Button(interface_window, text='上一条', width=8, command=lambda:
-                             thread_it(change_selection, result_select, 'prev'))
+                         change_selection(result_select, 'prev', max))
     next_result = Button(interface_window, text='下一条', width=8, command=lambda:
-                             (change_selection, result_select, 'next'))
+                         change_selection(result_select, 'next', max))
     report = Button(interface_window, text='生成检测报告', width=200, height=50, image=report_window_img, command=lambda:
                     show_report_window(interface_window, report, result_dict, pre_list, path_list, img_list))
     #################################################### 批量检测组件声明结束
@@ -399,12 +457,12 @@ def show_interface(prev_window, info_batch, type):
 
     ############################################################## 批量检测组件布置
     title.place(relx=0.25, rely=0.05)
-    folder.place(relx=0.20, rely=0.23)
+    folder.place(relx=0.20, rely=0.20)
     change.place(relx=0.04, rely=0.122)
     return_prev.place(relx=0.04, rely=0.042)
     # save_folder.place(relx=0.22, rely=0.24)
-    start_detect.place(relx=0.62, rely=0.23)
-    results_list.place(relx=0.18, rely=0.345)
+    start_detect.place(relx=0.62, rely=0.20)
+    results_list.place(relx=0.18, rely=0.32)
     result_select.place(relx=0.24, rely=0.68)
     category_select.place(relx=0.64, rely=0.68)
     confirm.place(relx=0.20, rely=0.77)
@@ -428,6 +486,7 @@ def show_micro_window(prev_window):
         window.protocol("WM_DELETE_WINDOW", lambda: on_closing(prev_window, window))
     else:  # 这是从子功能界面返回
         window = prev_window
+        window.protocol("WM_DELETE_WINDOW", lambda: on_closing(prev_window, window))
 
     # 设置背景图片
     os_path = os.path.dirname(__file__)
